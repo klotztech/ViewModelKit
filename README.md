@@ -2,7 +2,7 @@
 
 Makes WPF ViewModel classes smart by default. Implements [INotifyPropertyChanged](https://msdn.microsoft.com/en-us/library/system.componentmodel.inotifypropertychanged.aspx) and DelegateCommands for auto-properties at compile time, recognises dependent properties, connects property changed handlers, triggers validation. Supports virtual properties with Entity Famework.
 
-This fork of the [original Fody add-in](https://github.com/ygoe/ViewModelKit) by Yves Goergen is ported to work with the latest version of Fody (tested on v6.5.0) and depends on the usage of [Prism's DelegateCommand implementation](https://prismlibrary.com/docs/commanding.html) in WPF.
+This fork of the [original Fody add-in](https://github.com/ygoe/ViewModelKit) by Yves Goergen is ported to work with the latest version of Fody (tested on v6.5.0) and depends on the usage of [Prism's DelegateCommand implementation](https://prismlibrary.com/docs/commanding.html) for WPF.
 
 [Introduction to Fody](https://github.com/Fody/Fody/wiki/SampleUsage) 
 
