@@ -1,68 +1,30 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{6E91ECF3-4E31-4BFF-9B79-A291CF8E26B5}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>ViewModelKit</RootNamespace>
-    <AssemblyName>ViewModelKit</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile>
-    </TargetFrameworkProfile>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <DocumentationFile>bin\Debug\ViewModelKit.xml</DocumentationFile>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <DocumentationFile>bin\Release\ViewModelKit.xml</DocumentationFile>
-    <Prefer32Bit>false</Prefer32Bit>
+    <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>snk.pfx</AssemblyOriginatorKeyFile>
+    <Authors>Yves Goergen (ported by Steffen Klotz)</Authors>
+    <Description>Makes WPF ViewModel classes smart by default. Implements INotifyPropertyChanged and DelegateCommands for auto properties, recognises dependent properties, connects property changed handlers, triggers validation. Supports virtual properties with Entity Famework.</Description>
+    <PackageTags>XAML, WPF, MVVM, INotifyPropertyChanged, DataBinding, ViewModel, ICommand, DelegateCommand, Validation, DataAnnotations, ILWeaving, Cecil</PackageTags>
+    <PackageOutputPath>$(SolutionDir)nugets</PackageOutputPath>
+    <PackageProjectUrl>https://github.com/klotztech/ViewModelKit</PackageProjectUrl>
+    <PackageIconUrl>https://raw.githubusercontent.com/klotztech/ViewModelKit/master/package_icon.png</PackageIconUrl>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <UseWPF>true</UseWPF>
+    <Version>2.0.36</Version>
+    <AssemblyVersion>2.0.36.0</AssemblyVersion>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="PresentationCore" />
-    <Reference Include="PresentationFramework" />
-    <Reference Include="System" />
-    <Reference Include="System.ComponentModel.DataAnnotations" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
-    <Reference Include="WindowsBase" />
+    <None Include="$(SolutionDir)LICENSE.txt" Pack="true" PackagePath="" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Attributes.cs" />
-    <Compile Include="DelegateCommand.cs" />
-    <Compile Include="InputCleanup.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <None Include="ValidatingObservableCollection.cs" />
-    <Compile Include="ValidatingViewModelBase.cs" />
-    <Compile Include="ViewModelBase.cs" />
+    <PackageReference Include="Fody" Version="6.5.0" PrivateAssets="none" />
+    <PackageReference Include="FodyPackaging" Version="6.5.0" PrivateAssets="All" />
+    <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
   </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+  <ItemGroup>
+    <ProjectReference Include="..\ViewModelKit.Fody\ViewModelKit.Fody.csproj" />
+  </ItemGroup>
 </Project>
