@@ -160,22 +160,33 @@ namespace ViewModelKit.Fody
             return equalityComparerEqualsReference;
         }
 
-        public MethodReference DelegateCommandConstructor(params TypeReference[] parameterTypes)
+        public MethodReference DelegateCommandConstructor(TypeReference commandType, params TypeReference[] parameterTypes)
         {
-            var prismModuleDef = moduleDef.AssemblyResolver.Resolve(PrismAssemblyNameReference).MainModule;
-            var oldDelegateCommandType = prismModuleDef.Types.FirstOrDefault(t => t.FullName == "Prism.Commands.DelegateCommand")
-                ?? throw new Exception("Prism.Commands.DelegateCommand not found");
+            //var prismModuleDef = moduleDef.AssemblyResolver.Resolve(PrismAssemblyNameReference).MainModule;
+            //var oldDelegateCommandType = prismModuleDef.Types.FirstOrDefault(t => t.FullName == "Prism.Commands.DelegateCommand")
+            //    ?? throw new Exception("Prism.Commands.DelegateCommand not found");
 
-            var ctors = from c in oldDelegateCommandType.GetConstructors()
+            var ctors = from c in commandType.Resolve().GetConstructors()
                         where !c.IsStatic
                             && c.Parameters.Count == parameterTypes.Length
-                            && c.Parameters.Zip(parameterTypes, (cp, pt) => cp.ParameterType.FullName == pt.FullName).All(b => b)
+                            && c.Parameters.Zip(parameterTypes, (cp, pt) => cp.ParameterType.Resolve().IsAssignableFrom(pt.Resolve())).All(b => b)
                         select c;
 
             var ctor = ctors.FirstOrDefault()
-                ?? throw new Exception($"new DelegateCommand({string.Join(", ", parameterTypes.Select(p => p.FullName))}) not found");
+                ?? throw new Exception($"new DelegateCommand({string.Join(", ", parameterTypes.Select(p => p.FullName))}) not found:"
+                 + string.Join("\r\n",
+                    from c in commandType.Resolve().GetConstructors()
+                    where !c.IsStatic
+                        && c.Parameters.Count == parameterTypes.Length
+                    select $"FullName={c.FullName} Parameters=[{string.Join(", ", from p in c.Parameters select p.ParameterType.FullName)}]"));
 
-            return moduleDef.ImportReference(ctor);
+            MethodReference ctorRef = moduleDef.ImportReference(ctor);
+
+            // Add back commands type parameters to imported ctor reference
+            if (commandType is GenericInstanceType genericCommand)
+                return ctorRef.MakeHostInstanceGeneric(args: genericCommand.GenericArguments.ToArray());
+
+            return ctorRef;
         }
 
         public MethodReference GenericActionConstructor(TypeReference typeParameter)
@@ -184,10 +195,10 @@ namespace ViewModelKit.Fody
             var genType = new GenericInstanceType(actionRef);
             genType.GenericArguments.Add(typeParameter);
             var importedGenType = moduleDef.ImportReference(genType);
-            var equalsMethodDefinition = importedGenType.Resolve()
+            var ctor = importedGenType.Resolve()
                 .GetConstructors().FirstOrDefault(x => !x.IsStatic)
                 ?? throw new Exception($"new Action<{typeParameter.FullName}>() not found");
-            return moduleDef.ImportReference(equalsMethodDefinition);
+            return moduleDef.ImportReference(ctor).MakeHostInstanceGeneric(typeParameter);
         }
 
         public MethodReference GenericPredicateFuncConstructor(TypeReference typeParameter)

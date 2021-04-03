@@ -13,8 +13,8 @@
     <PackageIconUrl>https://raw.githubusercontent.com/klotztech/ViewModelKit/master/package_icon.png</PackageIconUrl>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <UseWPF>true</UseWPF>
-    <Version>2.0.36</Version>
-    <AssemblyVersion>2.0.36.0</AssemblyVersion>
+    <Version>2.0.48</Version>
+    <AssemblyVersion>2.0.48.0</AssemblyVersion>
   </PropertyGroup>
   <ItemGroup>
     <None Include="$(SolutionDir)LICENSE.txt" Pack="true" PackagePath="" />

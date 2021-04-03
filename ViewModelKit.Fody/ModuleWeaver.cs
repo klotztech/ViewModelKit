@@ -940,12 +940,26 @@ namespace ViewModelKit.Fody
                     commandName = commandName.Substring(0, commandName.Length - "Command".Length);
                 }
 
-                var executeMethod = typeDef.Methods
-                    .FirstOrDefault(m => m.Name == $"On{commandName}" &&
-                        !m.IsStatic &&
-                        m.ReturnType == ModuleDefinition.TypeSystem.Void &&
-                        (!m.HasParameters || m.Parameters.Count == 1 && m.Parameters[0].ParameterType == ModuleDefinition.TypeSystem.Object) &&
-                        !m.HasGenericParameters);
+                MethodDefinition executeMethod;
+                if (propDef.PropertyType is GenericInstanceType genericCommand)
+                {
+                    var commandParameterType = genericCommand.GenericArguments[0].Resolve();
+                    executeMethod = typeDef.Methods
+                        .FirstOrDefault(m => m.Name == $"On{commandName}"
+                        && !m.IsStatic
+                        && m.ReturnType == ModuleDefinition.TypeSystem.Void
+                        && (!m.HasParameters || m.Parameters.Count == 1 && m.Parameters[0].ParameterType.Resolve().IsAssignableFrom(commandParameterType))
+                        && !m.HasGenericParameters);
+                }
+                else
+                {
+                    executeMethod = typeDef.Methods
+                        .FirstOrDefault(m => m.Name == $"On{commandName}"
+                        && !m.IsStatic
+                        && m.ReturnType == ModuleDefinition.TypeSystem.Void
+                        && !m.HasParameters
+                        && !m.HasGenericParameters);
+                }
 
                 if (executeMethod == null &&
                     typeDef.Methods.Any(m => m.Name == $"On{commandName}" &&
@@ -1000,7 +1014,7 @@ namespace ViewModelKit.Fody
                     if (canExecuteMethod == null)
                     {
                         // No second parameter : new DelegateCommand(Execute)
-                        var ctor = refs.DelegateCommandConstructor(actionCtor.DeclaringType);
+                        var ctor = refs.DelegateCommandConstructor(propDef.PropertyType, actionCtor.DeclaringType);
                         il.Append(il.Create(OpCodes.Newobj, ctor));
                     }
                     else // CanExecute Func<x,bool> : new DelegateCommand(Execute, CanExecute)
@@ -1021,7 +1035,7 @@ namespace ViewModelKit.Fody
                         il.Append(il.Create(OpCodes.Newobj, funcCtor));
 
                         // TODO: optional type parameter
-                        var ctor = refs.DelegateCommandConstructor(actionCtor.DeclaringType, funcCtor.DeclaringType);
+                        var ctor = refs.DelegateCommandConstructor(propDef.PropertyType, actionCtor.DeclaringType, funcCtor.DeclaringType);
                         il.Append(il.Create(OpCodes.Newobj, ctor));
                     }
 
@@ -1056,99 +1070,8 @@ namespace ViewModelKit.Fody
                         var observesPropertyMethod = refs.GenericObservesPropertyMethod(propDef.PropertyType, depPropDef.PropertyType);
                         il.Append(il.Create(OpCodes.Call, observesPropertyMethod));
 #endif
-
-
-                        /*
-19	003D	ldarg.0
-20	003E	ldtoken	MobilerFriseur.ViewModels.MainWindowViewModel
-21	0043	call	class [mscorlib]System.Type [mscorlib]System.Type::GetTypeFromHandle(valuetype [mscorlib]System.RuntimeTypeHandle)
-22	0048	call	class [System.Core]System.Linq.Expressions.ConstantExpression [System.Core]System.Linq.Expressions.Expression::Constant(object, class [mscorlib]System.Type)
-
-23	004D	ldtoken	instance string MobilerFriseur.ViewModels.MainWindowViewModel::get_TitleText()
-24	0052	call	class [mscorlib]System.Reflection.MethodBase [mscorlib]System.Reflection.MethodBase::GetMethodFromHandle(valuetype [mscorlib]System.RuntimeMethodHandle)
-25	0057	castclass	[mscorlib]System.Reflection.MethodInfo
-26	005C	call	class [System.Core]System.Linq.Expressions.MemberExpression [System.Core]System.Linq.Expressions.Expression::Property(class [System.Core]System.Linq.Expressions.Expression, class [mscorlib]System.Reflection.MethodInfo)
-
-27	0061	call	!!0[] [mscorlib]System.Array::Empty<class [System.Core]System.Linq.Expressions.ParameterExpression>()
-28	0066	call	class [System.Core]System.Linq.Expressions.Expression`1<!!0> [System.Core]System.Linq.Expressions.Expression::Lambda<class [mscorlib]System.Func`1<string>>(class [System.Core]System.Linq.Expressions.Expression, class [System.Core]System.Linq.Expressions.ParameterExpression[])
-29	006B	call	instance class [Prism]Prism.Commands.DelegateCommand [Prism]Prism.Commands.DelegateCommand::ObservesProperty<string>(class [System.Core]System.Linq.Expressions.Expression`1<class [mscorlib]System.Func`1<!!0>>)
-
-
-30	0070	ldarg.0
-31	0071	ldtoken	MobilerFriseur.ViewModels.MainWindowViewModel
-32	0076	call	class [mscorlib]System.Type [mscorlib]System.Type::GetTypeFromHandle(valuetype [mscorlib]System.RuntimeTypeHandle)
-33	007B	call	class [System.Core]System.Linq.Expressions.ConstantExpression [System.Core]System.Linq.Expressions.Expression::Constant(object, class [mscorlib]System.Type)
-34	0080	ldtoken	instance string MobilerFriseur.ViewModels.MainWindowViewModel::get_Title2()
-35	0085	call	class [mscorlib]System.Reflection.MethodBase [mscorlib]System.Reflection.MethodBase::GetMethodFromHandle(valuetype [mscorlib]System.RuntimeMethodHandle)
-36	008A	castclass	[mscorlib]System.Reflection.MethodInfo
-37	008F	call	class [System.Core]System.Linq.Expressions.MemberExpression [System.Core]System.Linq.Expressions.Expression::Property(class [System.Core]System.Linq.Expressions.Expression, class [mscorlib]System.Reflection.MethodInfo)
-38	0094	call	!!0[] [mscorlib]System.Array::Empty<class [System.Core]System.Linq.Expressions.ParameterExpression>()
-39	0099	call	class [System.Core]System.Linq.Expressions.Expression`1<!!0> [System.Core]System.Linq.Expressions.Expression::Lambda<class [mscorlib]System.Func`1<string>>(class [System.Core]System.Linq.Expressions.Expression, class [System.Core]System.Linq.Expressions.ParameterExpression[])
-40	009E	callvirt	instance class [Prism]Prism.Commands.DelegateCommand [Prism]Prism.Commands.DelegateCommand::ObservesProperty<string>(class [System.Core]System.Linq.Expressions.Expression`1<class [mscorlib]System.Func`1<!!0>>)
-                        */
                     }
                 }
-
-                //else if (!executeMethod.HasParameters)
-                //{
-                //    // First parameter is Action
-                //    //constructors = constructors.Where(c => !c.Parameters[0].ParameterType.ToString().Contains("System.Object"));
-
-                //    var actionRef = ModuleDefinition.ImportReference(typeof(Action));
-                //    commandConstructor = refs.DelegateCommandConstructor(actionRef);
-
-                //    il.Append(il.Create(OpCodes.Ldarg_0));
-                //    il.Append(il.Create(OpCodes.Ldftn, executeMethod));
-                //    il.Append(il.Create(OpCodes.Newobj, ModuleDefinition.ImportReference(typeof(Action).GetConstructors().First())));
-                //}
-                //else if (executeMethod.HasParameters)
-                //{
-                //    // First parameter is Action<object>
-                //    //constructors = constructors.Where(c => c.Parameters[0].ParameterType.ToString().Contains("System.Object"));
-
-                //    var actionRef = ModuleDefinition.ImportReference(typeof(Action<>));
-                //    commandConstructor = refs.DelegateCommandConstructor(actionRef);
-
-                //    il.Append(il.Create(OpCodes.Ldarg_0));
-                //    il.Append(il.Create(OpCodes.Ldftn, executeMethod));
-                //    il.Append(il.Create(OpCodes.Newobj, ModuleDefinition.ImportReference(typeof(Action<object>).GetConstructors().First())));
-                //}
-
-                //if (constructors != null)
-                //{
-                //    if (canExecuteMethod == null)
-                //    {
-                //        // No second parameter
-                //    }
-                //    else if (!canExecuteMethod.HasParameters)
-                //    {
-                //        // Second parameter is Func<bool>
-                //        //constructors = constructors.Where(c => c.Parameters.Count == 2);
-                //        //constructors = constructors.Where(c => !c.Parameters[1].ParameterType.ToString().Contains("System.Object"));
-
-                //        var actionRef = ModuleDefinition.ImportReference(typeof(Action<>));
-                //        commandConstructor = refs.DelegateCommandConstructor(actionRef);
-
-                //        il.Append(il.Create(OpCodes.Ldarg_0));
-                //        il.Append(il.Create(OpCodes.Ldftn, canExecuteMethod));
-                //        il.Append(il.Create(OpCodes.Newobj, ModuleDefinition.ImportReference(typeof(Func<bool>).GetConstructors().First())));
-                //    }
-                //    else if (canExecuteMethod.HasParameters)
-                //    {
-                //        // Second parameter is Func<object, bool>
-                //        constructors = constructors.Where(c => c.Parameters.Count == 2);
-                //        constructors = constructors.Where(c => c.Parameters[1].ParameterType.ToString().Contains("System.Object"));
-
-                //        il.Append(il.Create(OpCodes.Ldarg_0));
-                //        il.Append(il.Create(OpCodes.Ldftn, canExecuteMethod));
-                //        il.Append(il.Create(OpCodes.Newobj, ModuleDefinition.ImportReference(typeof(Func<object, bool>).GetConstructors().First())));
-                //    }
-                //}
-
-                //if (constructors != null)
-                //{
-                //    il.Append(il.Create(OpCodes.Newobj, constructors.First()));
-                //}
 
                 // Directly set the backing field
                 var backingField = backingFields[propDef.Name].Resolve();

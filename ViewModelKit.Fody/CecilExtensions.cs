@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
+using Mono.Cecil.Rocks;
 
 namespace ViewModelKit.Fody
 {
@@ -881,4 +882,113 @@ namespace ViewModelKit.Fody
             return resolver.Resolve(new AssemblyNameReference(name, new Version()));
         }
     }
+
+    public static class TypeDefinitionExtensions
+    {
+        /// <summary>
+        /// Is childTypeDef a subclass of parentTypeDef. Does not test interface inheritance
+        /// </summary>
+        /// <param name="childTypeDef"></param>
+        /// <param name="parentTypeDef"></param>
+        /// <returns></returns>
+        public static bool IsSubclassOf(this TypeDefinition childTypeDef, TypeDefinition parentTypeDef)
+        {
+            return childTypeDef.MetadataToken != parentTypeDef.MetadataToken
+                && childTypeDef
+                .EnumerateBaseClasses()
+                .Any(b => b.MetadataToken == parentTypeDef.MetadataToken);
+        }
+
+        /// <summary>
+        /// Does childType inherit from parentInterface
+        /// </summary>
+        /// <param name="childType"></param>
+        /// <param name="parentInterfaceDef"></param>
+        /// <returns></returns>
+        public static bool DoesAnySubTypeImplementInterface(this TypeDefinition childType, TypeDefinition parentInterfaceDef)
+        {
+            Debug.Assert(parentInterfaceDef.IsInterface);
+            return childType
+               .EnumerateBaseClasses()
+               .Any(typeDefinition => typeDefinition.DoesSpecificTypeImplementInterface(parentInterfaceDef));
+        }
+
+        /// <summary>
+        /// Does the childType directly inherit from parentInterface. Base
+        /// classes of childType are not tested
+        /// </summary>
+        /// <param name="childTypeDef"></param>
+        /// <param name="parentInterfaceDef"></param>
+        /// <returns></returns>
+        public static bool DoesSpecificTypeImplementInterface(this TypeDefinition childTypeDef, TypeDefinition parentInterfaceDef)
+        {
+            Debug.Assert(parentInterfaceDef.IsInterface);
+            return childTypeDef
+               .Interfaces
+               .Any(ifaceDef => DoesSpecificInterfaceImplementInterface(ifaceDef.InterfaceType.Resolve(), parentInterfaceDef));
+        }
+
+        /// <summary>
+        /// Does interface subject equal or implement interface iface
+        /// </summary>
+        /// <param name="subject"></param>
+        /// <param name="iface"></param>
+        /// <returns></returns>
+        public static bool DoesSpecificInterfaceImplementInterface(TypeDefinition subject, TypeDefinition iface)
+        {
+            Debug.Assert(iface.IsInterface);
+            return subject.MetadataToken == iface.MetadataToken || subject.DoesAnySubTypeImplementInterface(iface);
+        }
+
+        /// <summary>
+        /// Is source type assignable to target type
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="source"></param>
+        /// <returns></returns>
+        public static bool IsAssignableFrom(this TypeDefinition target, TypeDefinition source)
+           => target == source
+              || target.MetadataToken == source.MetadataToken
+              || source.IsSubclassOf(target)
+              || target.IsInterface && source.DoesAnySubTypeImplementInterface(target);
+
+        /// <summary>
+        /// Enumerate the current type, it's parent and all the way to the top type
+        /// </summary>
+        /// <param name="klassType"></param>
+        /// <returns></returns>
+        public static IEnumerable<TypeDefinition> EnumerateBaseClasses(this TypeDefinition klassType)
+        {
+            for (var typeDefinition = klassType; typeDefinition != null; typeDefinition = typeDefinition.BaseType?.Resolve())
+            {
+                yield return typeDefinition;
+            }
+        }
+
+        public static MethodReference MakeHostInstanceGeneric(this MethodReference self, params TypeReference[] args)
+        {
+            var reference = new MethodReference(
+                self.Name,
+                self.ReturnType,
+                self.DeclaringType.MakeGenericInstanceType(args))
+            {
+                HasThis = self.HasThis,
+                ExplicitThis = self.ExplicitThis,
+                CallingConvention = self.CallingConvention
+            };
+
+            foreach (var parameter in self.Parameters)
+            {
+                reference.Parameters.Add(new ParameterDefinition(parameter.ParameterType));
+            }
+
+            foreach (var genericParam in self.GenericParameters)
+            {
+                reference.GenericParameters.Add(new GenericParameter(genericParam.Name, reference));
+            }
+
+            return reference;
+        }
+    }
+
 }
